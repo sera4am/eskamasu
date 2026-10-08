@@ -9,6 +9,8 @@ eskamasu is the es-toolkit edition of [ansuko](https://github.com/sera4am/ansuko
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-09
+
 ### Added
 - Initial release. Same API and plugins (`ja` / `geo` / `prototype`) as ansuko v2.0.11, built on `es-toolkit/compat` instead of `lodash`.
 - `EskamasuType` extends `Omit<typeof import("es-toolkit/compat"), ...>`, so all es-toolkit/compat functions are typed on `_`.
@@ -16,4 +18,5 @@ eskamasu is the es-toolkit edition of [ansuko](https://github.com/sera4am/ansuko
 ### Removed
 - Not available compared to ansuko (missing in es-toolkit/compat): `chain`, `mixin`, `sortedUniq`, `sortedUniqBy`, `tap`, `thru`, `noConflict`, `runInContext`.
 
-[Unreleased]: https://github.com/sera4am/eskamasu/commits/main
+[Unreleased]: https://github.com/sera4am/eskamasu/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/sera4am/eskamasu/releases/tag/v0.1.0
