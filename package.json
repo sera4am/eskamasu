@@ -1,0 +1,88 @@
+{
+  "name": "eskamasu",
+  "version": "0.0.0",
+  "description": "A modern JavaScript/TypeScript utility library that extends es-toolkit (lodash-compatible) with practical, intuitive behaviors. Adds Promise support, Japanese text processing, and GeoJSON utilities. Sibling of ansuko.",
+  "keywords": [
+    "es-toolkit",
+    "lodash",
+    "utility",
+    "utilities",
+    "typescript",
+    "promise",
+    "async",
+    "japanese",
+    "katakana",
+    "hiragana",
+    "geojson",
+    "turf",
+    "gis",
+    "json5",
+    "functional"
+  ],
+  "author": "Naoto Sera <sera@4am.jp>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sera4am/eskamasu.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sera4am/eskamasu/issues"
+  },
+  "homepage": "https://github.com/sera4am/eskamasu#readme",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./dist/index.js",
+    "./plugins/ja": "./dist/plugins/ja.js",
+    "./plugins/geo": "./dist/plugins/geo.js",
+    "./plugins/prototype": "./dist/plugins/prototype.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "npm run build && vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "version": "bash ./scripts/promote-changelog.sh && git add CHANGELOG.md"
+  },
+  "dependencies": {
+    "@turf/turf": "^7.3.1",
+    "es-toolkit": "^1.52.0",
+    "json5": "^2.2.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.2",
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^25.0.5",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "eslint": "^9.39.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "vitest": {
+    "test": {
+      "include": [
+        "tests/**/*.test.*"
+      ],
+      "exclude": [
+        "ansuko.test.js",
+        "unionPolygon.test.js",
+        "test.geo.js",
+        "dist/**",
+        "docs/**"
+      ]
+    }
+  }
+}
