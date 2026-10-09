@@ -1,5 +1,4 @@
-import _ from '../dist/index.js'
-import '../dist/plugins/ja.js'
+import * as _ from '../dist/plugins/ja.js'
 import { describe, it, expect } from 'vitest'
 
 const eskamasu = _
@@ -15,6 +14,14 @@ describe('JA Plugin', () => {
     expect(eskamasu.kanaToHalf('ガギ')).toBe('ｶﾞｷﾞ')
     expect(eskamasu.kanaToHalf('アイウ')).toBe('ｱｲｳ')
     expect(eskamasu.kanaToHalf(null)).toBeNull()
+  })
+
+  it('parentheses are converted (regression: used to become "undefined")', () => {
+    expect(eskamasu.kanaToFull('ｱ(ｲ)')).toBe('ア（イ）')
+    expect(eskamasu.kanaToHalf('ア（イ）')).toBe('ｱ(ｲ)')
+    expect(eskamasu.toFullWidth('a(b)')).toBe('ａ（ｂ）')
+    // 正規表現を使い回しても結果が変わらないこと (g フラグの lastIndex)
+    expect(eskamasu.kanaToFull('ｱ(ｲ)')).toBe('ア（イ）')
   })
 
   it('kanaToHira / hiraToKana', () => {

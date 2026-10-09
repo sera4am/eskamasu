@@ -9,6 +9,20 @@ eskamasu is the es-toolkit edition of [ansuko](https://github.com/sera4am/ansuko
 
 ## [Unreleased]
 
+### Changed (BREAKING)
+- Switched from a default `_` object to named exports. Use `import { isEmpty, get, valueOr } from "eskamasu"` instead of `import _ from "eskamasu"`. All `es-toolkit/compat` functions are re-exported; `isEmpty` / `toNumber` / `castArray` are overridden by the eskamasu versions. This makes eskamasu tree-shakable.
+- Plugins `ja` / `geo` no longer extend `_` via side-effect import. Import functions by name from the subpath instead, e.g. `import { kanaToFull } from "eskamasu/plugins/ja"`. The `prototype` plugin is still a side-effect import.
+
+### Added
+- `toBool`, `emptyOr`, `hasOr`, `isEmptyOrg`, `toNumberOrg`, `castArrayOrg` are now available as named exports (previously only reachable via `_`).
+- `sideEffects` field in `package.json` so bundlers can tree-shake everything except `plugins/prototype`.
+
+### Removed (BREAKING)
+- Default export `_`, the `EskamasuType` interface, the plugin extension interfaces (`EskamasuJaExtension` / `EskamasuGeoPluginExtension`), and the `_.__plugins` registry.
+
+### Fixed
+- `kanaToFull` / `kanaToHalf` / `toFullWidth` (ja plugin): half-width parentheses `(` `)` were converted to the string `"undefined"` (and `kanaToHalf` produced `\(` / `\)`). Map keys are now plain characters and are regex-escaped when building the pattern. The regexes and reverse map are now built once instead of on every call.
+
 ## [0.1.0] - 2026-10-09
 
 ### Added

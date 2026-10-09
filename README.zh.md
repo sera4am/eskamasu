@@ -18,7 +18,14 @@ eskamasu 是 [ansuko](https://github.com/sera4am/ansuko) 的姊妹库。自有�
 | [ansuko](https://github.com/sera4am/ansuko) | `lodash` | 需要与 lodash 完全兼容 |
 | **eskamasu** | `es-toolkit/compat` | 希望以 es-toolkit 为基础 |
 
-与 ansuko 一样，所有函数都集中在一个 `_` 对象下。这是有意为之：避免 `map`、`get`、`toNumber` 这类简短通用的名称污染模块作用域。因此，tree-shaking 并不是本库的目标。
+与 ansuko 不同，eskamasu 不使用 `_` 对象。`es-toolkit/compat` 的全部函数和 eskamasu 自有函数都以 **named export** 提供，因此可以像 `import { isEmpty, get, valueOr } from 'eskamasu'` 这样只 import 需要的函数，tree-shaking 也能生效。
+
+```typescript
+import { isEmpty, get, valueOr } from 'eskamasu'
+
+isEmpty(0)              // false（eskamasu 版）
+get({ a: 1 }, 'a')      // 1（直接使用 es-toolkit/compat）
+```
 
 ## 安装
 
@@ -31,7 +38,7 @@ npm install eskamasu
 ```json
 {
   "dependencies": {
-    "eskamasu": "^0.1.0"
+    "eskamasu": "^0.2.0"
   }
 }
 ```
@@ -46,17 +53,17 @@ eskamasu以直观的语法,解决了JavaScript中常见的痛点。
 
 ```typescript
 // ❌ lodash / es-toolkit/compat（不直观）
-_.isEmpty(0)           // true  - 0真的为「空」吗？
-_.isEmpty(true)        // true  - true算「空」吗？
-_.castArray(null)      // [null] - 为何保留null？
+isEmpty(0)           // true  - 0真的为「空」吗？
+isEmpty(true)        // true  - true算「空」吗？
+castArray(null)      // [null] - 为何保留null？
 
 // ✅ eskamasu（直观）
-_.isEmpty(0)           // false - 数值不为空
-_.isEmpty(true)        // false - 布尔值不为空
-_.castArray(null)      // []    - 得到空数组
+isEmpty(0)           // false - 数值不为空
+isEmpty(true)        // false - 布尔值不为空
+castArray(null)      // []    - 得到空数组
 ```
 
-原始实现仍可通过 `_.isEmptyOrg`、`_.toNumberOrg`、`_.castArrayOrg`（`es-toolkit/compat` 的实现）使用。
+原始实现仍可通过 `isEmptyOrg`、`toNumberOrg`、`castArrayOrg`（`es-toolkit/compat` 的实现）import 使用。
 
 ### 安全的 JSON 处理
 
@@ -66,10 +73,10 @@ JSON.stringify('hello')  // '"hello"'  - 多余的引号
 JSON.parse(badJson)      // throws    - 必须用try-catch
 
 // ✅ eskamasu（简洁直观）
-_.jsonStringify('hello')     // null     - 非对象不序列化
-_.jsonStringify({ a: 1 })    // '{"a":1}' - 结构简洁
-_.parseJSON(badJson)         // null     - 不抛异常
-_.parseJSON('{ a: 1, }')     // {a:1}    - 支持JSON5！
+jsonStringify('hello')     // null     - 非对象不序列化
+jsonStringify({ a: 1 })    // '{"a":1}' - 结构简洁
+parseJSON(badJson)         // null     - 不抛异常
+parseJSON('{ a: 1, }')     // {a:1}    - 支持JSON5！
 ```
 
 ### 支持Promise的回滚
@@ -80,7 +87,7 @@ const data = await fetchData()
 const result = data ? data : await fetchBackup()
 
 // ✅ eskamasu（简洁）
-const result = await _.valueOr(
+const result = await valueOr(
   () => fetchData(),
   () => fetchBackup()
 )
@@ -93,7 +100,7 @@ const result = await _.valueOr(
 const value = a === b ? a : (a == null && b == null ? a : defaultValue)
 
 // ✅ eskamasu（可读）
-const value = _.equalsOr(a, b, defaultValue)  // null == undefined
+const value = equalsOr(a, b, defaultValue)  // null == undefined
 ```
 
 ## 主要特性
@@ -175,54 +182,57 @@ eskamasu采用核心 + 按需引入的插件架构：
 - **Prototype 插件**：仅在需要扩展 Array.prototype 时引入
 
 ```typescript
-// 核心
-import _ from 'eskamasu'
+// 核心（es-toolkit/compat 全部函数 + eskamasu 自有函数）
+import { isEmpty, valueOr } from 'eskamasu'
 
 // 按需加入日文支持
-import 'eskamasu/plugins/ja'  // 副作用引入
+import { kanaToFull } from 'eskamasu/plugins/ja'
 
 // 地图类应用再挂载 GIS
-import 'eskamasu/plugins/geo'
+import { toPointGeoJson } from 'eskamasu/plugins/geo'
 ```
 
-插件通过副作用引入加载。只需 `import 'eskamasu/plugins/<name>'` 一次，`_` 在运行时和 TypeScript 类型层面（通过 `declare module` 合并）都会被扩展，因此 IDE 可以直接在 `_` 上进行自动补全。未 import 的插件不会被打包。
+`ja` / `geo` 插件从子路径以 named import 引入。由于拆分了子路径，`@turf/turf` 这类较重的依赖只有在 import 该插件时才会被加载。只有 `prototype` 插件因其扩展 `Array.prototype` 的性质，需要通过副作用引入（`import 'eskamasu/plugins/prototype'`）使用。
 
 ## 快速开始
 
 ### 基本用法
 
 ```typescript
-import _ from 'eskamasu'
+import {
+  isEmpty, castArray, toNumber, valueOr, parseJSON,
+  isValidEmail, changes, swallow, swallowMap,
+} from 'eskamasu'
 
 // 增强的 es-toolkit/compat 函数
-_.isEmpty(0)           // false（不像 lodash / es-toolkit/compat 那样是 true！）
-_.isEmpty([])          // true
-_.castArray(null)      // []（不是 [null]！）
-_.toNumber('1,234.5')  // 1234.5
+isEmpty(0)           // false（不像 lodash / es-toolkit/compat 那样是 true！）
+isEmpty([])          // true
+castArray(null)      // []（不是 [null]！）
+toNumber('1,234.5')  // 1234.5
 
 // 支持 Promise 的值处理
-const value = await _.valueOr(
+const value = await valueOr(
   () => cache.get(id),
   () => api.fetch(id)
 )
 
 // 安全的 JSON 解析
-const data = _.parseJSON('{ "a": 1, /* 注释 */ }')  // 支持 JSON5！
+const data = parseJSON('{ "a": 1, /* 注释 */ }')  // 支持 JSON5！
 
 // 邮箱格式校验
-_.isValidEmail('user@example.com')   // true
-_.isValidEmail(' user@example.com ') // false
+isValidEmail('user@example.com')   // true
+isValidEmail(' user@example.com ') // false
 
 // 跟踪对象更改以进行数据库更新
-const diff = _.changes(
+const diff = changes(
   original, 
   updated, 
   ['name', 'email', 'profile.bio']
 )
 
 // 无需 try-catch 的错误处理
-const result = _.swallow(() => riskyOperation())  // 出错时为 undefined
-const items = _.swallowMap([1, 2, 3], item => processItem(item), true)  // 过滤错误
+const result = swallow(() => riskyOperation())  // 出错时为 undefined
+const items = swallowMap([1, 2, 3], item => processItem(item), true)  // 过滤错误
 ```
 
 ### 使用插件
@@ -230,36 +240,34 @@ const items = _.swallowMap([1, 2, 3], item => processItem(item), true)  // 过�
 #### 日文文本插件
 
 ```typescript
-import _ from 'eskamasu'
-import 'eskamasu/plugins/ja'
+import { kanaToFull, kanaToHira, toHalfWidth, haifun } from 'eskamasu/plugins/ja'
 
-_.kanaToFull('ｶﾞｷﾞ')              // 'ガギ'
-_.kanaToHira('アイウ')             // 'あいう'
-_.toHalfWidth('ＡＢＣー１２３', '-') // 'ABC-123'
-_.haifun('test‐data', '-')       // 'test-data'
+kanaToFull('ｶﾞｷﾞ')              // 'ガギ'
+kanaToHira('アイウ')             // 'あいう'
+toHalfWidth('ＡＢＣー１２３', '-') // 'ABC-123'
+haifun('test‐data', '-')       // 'test-data'
 ```
 
 #### 地理插件
 
 ```typescript
-import _ from 'eskamasu'
-import 'eskamasu/plugins/geo'
+import { toPointGeoJson, unionPolygon, mZoomInterpolate, mProps } from 'eskamasu/plugins/geo'
 
 // 将各种格式转换为 GeoJSON
-_.toPointGeoJson([139.7671, 35.6812])
+toPointGeoJson([139.7671, 35.6812])
 // => { type: 'Point', coordinates: [139.7671, 35.6812] }
 
-_.toPointGeoJson({ lat: 35.6895, lng: 139.6917 })
+toPointGeoJson({ lat: 35.6895, lng: 139.6917 })
 // => { type: 'Point', coordinates: [139.6917, 35.6895] }
 
 // 合并多个多边形
-const unified = _.unionPolygon([polygon1, polygon2])
+const unified = unionPolygon([polygon1, polygon2])
 
 // MapBox 工具
-_.mZoomInterpolate({ 10: 1, 15: 5, 20: 10 })
+mZoomInterpolate({ 10: 1, 15: 5, 20: 10 })
 // => ["interpolate", ["linear"], ["zoom"], 10, 1, 15, 5, 20, 10]
 
-_.mProps({
+mProps({
   fillColor: "#ff0000",
   sourceLayer: "buildings",
   visibility: true
@@ -277,23 +285,9 @@ import 'eskamasu/plugins/prototype'
 [1, 2, 3].notFilter(n => n % 2)   // [2]（偶数）
 ```
 
-### 同时使用多个插件
-
-```typescript
-import _ from 'eskamasu'
-import 'eskamasu/plugins/ja'
-import 'eskamasu/plugins/geo'
-
-// 现在 `_` 上同时拥有日文和地理工具
-_.kanaToHira('アイウ')
-_.toPointGeoJson([139.7, 35.6])
-```
-
-每个插件即使被多个文件 import，也只会注册一次（内置了重复注册防护）。
-
 ## 与 lodash / ansuko 的区别
 
-`_` 等于 `{ ...es-toolkit/compat, ...eskamasu 自有函数 }`。以下 lodash 函数在 `es-toolkit/compat` 中不存在，因此在 `_` 上**不可用**：
+eskamasu 重新导出了 `es-toolkit/compat` 的全部函数，仅将 `isEmpty` / `toNumber` / `castArray` 替换为 eskamasu 版本。以下 lodash 函数在 `es-toolkit/compat` 中不存在，因此**不可用**：
 
 - `chain`
 - `mixin`
@@ -302,11 +296,13 @@ _.toPointGeoJson([139.7, 35.6])
 - `noConflict`
 - `runInContext`
 
-也不支持 `_(value).map(...)` 这种包装器式调用（ansuko 同样不支持）。除此之外（包括 eskamasu 自有函数和插件），行为与 ansuko 相同。
+也不支持 `_(value).map(...)` 这种包装器式调用（ansuko 同样不支持）。
+
+另外，与 ansuko 不同，eskamasu 没有 default export 的 `_`，插件也不是扩展 `_`，而是以 named export 提供。函数本身的行为（包括 eskamasu 自有函数和插件）与 ansuko 相同。
 
 ## 文档
 
-eskamasu 的自有函数和插件与 ansuko 的 API 相同，因此可以直接参考 ansuko 的文档（只需将 import 路径中的 `ansuko` 替换为 `eskamasu`）：
+eskamasu 的自有函数和插件与 ansuko 的 API 相同，因此可以直接参考 ansuko 的文档（将 `_.isEmpty(x)` 理解为 `import { isEmpty } from 'eskamasu'` 后调用 `isEmpty(x)` 即可）：
 
 - **[API 参考](https://github.com/sera4am/ansuko/blob/main/docs/API.zh.md)** - 包含示例的完整API文档
 - **[使用指南](https://github.com/sera4am/ansuko/blob/main/docs/Guide.zh.md)** - 实际使用案例与设计模式
@@ -351,14 +347,14 @@ try {
 }
 
 // eskamasu的实现逻辑（简洁且安全）
-const data = await _.valueOr(
+const data = await valueOr(
   () => cache.get(id),
   () => api.fetch(id),
   defaultValue
 )
 ```
 
-eskamasu在 `_` 上保留了 `es-toolkit/compat` 的 API（[与 lodash / ansuko 的区别](#与-lodash--ansuko-的区别)中列出的函数除外），在修正上述问题的同时，为现代JavaScript开发增添了强大的工具函数。
+eskamasu 可以直接 import `es-toolkit/compat` 的 API（[与 lodash / ansuko 的区别](#与-lodash--ansuko-的区别)中列出的函数除外），在修正上述问题的同时，为现代JavaScript开发增添了强大的工具函数。
 
 ## 依赖项
 

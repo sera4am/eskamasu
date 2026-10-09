@@ -18,7 +18,14 @@ eskamasu is a sibling of [ansuko](https://github.com/sera4am/ansuko). The own fu
 | [ansuko](https://github.com/sera4am/ansuko) | `lodash` | you want full lodash compatibility |
 | **eskamasu** | `es-toolkit/compat` | you want es-toolkit as the base |
 
-Like ansuko, everything is bundled under a single `_` object. This is intentional: it avoids polluting your module scope with short, generic names (`map`, `get`, `toNumber`, ...). As a consequence, tree-shaking is not a goal of this library.
+Unlike ansuko, eskamasu does not use a `_` object. All `es-toolkit/compat` functions and eskamasu's own functions are provided as **named exports**, so you can import only what you need (`import { isEmpty, get, valueOr } from 'eskamasu'`) and tree-shaking works.
+
+```typescript
+import { isEmpty, get, valueOr } from 'eskamasu'
+
+isEmpty(0)              // false (eskamasu version)
+get({ a: 1 }, 'a')      // 1 (es-toolkit/compat as-is)
+```
 
 ## Installation
 
@@ -31,7 +38,7 @@ Or add to your `package.json`:
 ```json
 {
   "dependencies": {
-    "eskamasu": "^0.1.0"
+    "eskamasu": "^0.2.0"
   }
 }
 ```
@@ -46,17 +53,17 @@ eskamasu eliminates common JavaScript frustrations with intuitive behaviors:
 
 ```typescript
 // ❌ lodash / es-toolkit/compat (unintuitive)
-_.isEmpty(0)           // true  - Is 0 really "empty"?
-_.isEmpty(true)        // true  - Is true "empty"?
-_.castArray(null)      // [null] - Why keep null?
+isEmpty(0)           // true  - Is 0 really "empty"?
+isEmpty(true)        // true  - Is true "empty"?
+castArray(null)      // [null] - Why keep null?
 
 // ✅ eskamasu (intuitive)
-_.isEmpty(0)           // false - Numbers are not empty
-_.isEmpty(true)        // false - Booleans are not empty
-_.castArray(null)      // []    - Clean empty array
+isEmpty(0)           // false - Numbers are not empty
+isEmpty(true)        // false - Booleans are not empty
+castArray(null)      // []    - Clean empty array
 ```
 
-The originals are still available as `_.isEmptyOrg`, `_.toNumberOrg` and `_.castArrayOrg` (the `es-toolkit/compat` implementations).
+The originals can still be imported as `isEmptyOrg`, `toNumberOrg` and `castArrayOrg` (the `es-toolkit/compat` implementations).
 
 ### Safe JSON Handling
 
@@ -66,10 +73,10 @@ JSON.stringify('hello')  // '"hello"'  - Extra quotes!
 JSON.parse(badJson)      // throws     - Need try-catch
 
 // ✅ eskamasu (smooth)
-_.jsonStringify('hello')     // null     - Not an object
-_.jsonStringify({ a: 1 })    // '{"a":1}' - Clean
-_.parseJSON(badJson)         // null     - No exceptions
-_.parseJSON('{ a: 1, }')     // {a:1}    - JSON5 support!
+jsonStringify('hello')     // null     - Not an object
+jsonStringify({ a: 1 })    // '{"a":1}' - Clean
+parseJSON(badJson)         // null     - No exceptions
+parseJSON('{ a: 1, }')     // {a:1}    - JSON5 support!
 ```
 
 ### Promise-Aware Fallbacks
@@ -80,7 +87,7 @@ const data = await fetchData()
 const result = data ? data : await fetchBackup()
 
 // ✅ eskamasu (concise)
-const result = await _.valueOr(
+const result = await valueOr(
   () => fetchData(),
   () => fetchBackup()
 )
@@ -93,7 +100,7 @@ const result = await _.valueOr(
 const value = a === b ? a : (a == null && b == null ? a : defaultValue)
 
 // ✅ eskamasu (readable)
-const value = _.equalsOr(a, b, defaultValue)  // null == undefined
+const value = equalsOr(a, b, defaultValue)  // null == undefined
 ```
 
 ## Key Features
@@ -175,54 +182,57 @@ eskamasu uses a core + opt-in plugin architecture:
 - **Prototype plugin**: only load if you want Array prototype extensions
 
 ```typescript
-// Core
-import _ from 'eskamasu'
+// Core (all es-toolkit/compat functions + eskamasu's own functions)
+import { isEmpty, valueOr } from 'eskamasu'
 
 // Add Japanese support when needed
-import 'eskamasu/plugins/ja'  // side-effect import
+import { kanaToFull } from 'eskamasu/plugins/ja'
 
 // Add GIS features for mapping apps
-import 'eskamasu/plugins/geo'
+import { toPointGeoJson } from 'eskamasu/plugins/geo'
 ```
 
-Plugins are loaded as side-effect imports. Just `import 'eskamasu/plugins/<name>'` once and `_` is augmented in both runtime and type system (via TypeScript's `declare module` merging), so IDE autocompletion works directly on `_`. A plugin you don't import is not bundled.
+The `ja` / `geo` plugins are imported by name from their subpaths. Because they live on separate subpaths, heavy dependencies such as `@turf/turf` are only loaded when you import the plugin. Only the `prototype` plugin, since it extends `Array.prototype`, is used as a side-effect import (`import 'eskamasu/plugins/prototype'`).
 
 ## Quick Start
 
 ### Basic Usage
 
 ```typescript
-import _ from 'eskamasu'
+import {
+  isEmpty, castArray, toNumber, valueOr, parseJSON,
+  isValidEmail, changes, swallow, swallowMap,
+} from 'eskamasu'
 
 // Enhanced es-toolkit/compat functions
-_.isEmpty(0)           // false (not true like lodash / es-toolkit/compat!)
-_.isEmpty([])          // true
-_.castArray(null)      // [] (not [null]!)
-_.toNumber('1,234.5')  // 1234.5
+isEmpty(0)           // false (not true like lodash / es-toolkit/compat!)
+isEmpty([])          // true
+castArray(null)      // [] (not [null]!)
+toNumber('1,234.5')  // 1234.5
 
 // Value handling with Promise support
-const value = await _.valueOr(
+const value = await valueOr(
   () => cache.get(id),
   () => api.fetch(id)
 )
 
 // Safe JSON parsing
-const data = _.parseJSON('{ "a": 1, /* comment */ }')  // Works with JSON5!
+const data = parseJSON('{ "a": 1, /* comment */ }')  // Works with JSON5!
 
 // Email validation
-_.isValidEmail('user@example.com')  // true
-_.isValidEmail(' user@example.com ') // false
+isValidEmail('user@example.com')  // true
+isValidEmail(' user@example.com ') // false
 
 // Track object changes for database updates
-const diff = _.changes(
+const diff = changes(
   original, 
   updated, 
   ['name', 'email', 'profile.bio']
 )
 
 // Error handling without try-catch
-const result = _.swallow(() => riskyOperation())  // undefined on error
-const items = _.swallowMap([1, 2, 3], item => processItem(item), true)  // filter errors
+const result = swallow(() => riskyOperation())  // undefined on error
+const items = swallowMap([1, 2, 3], item => processItem(item), true)  // filter errors
 ```
 
 ### Using Plugins
@@ -230,36 +240,34 @@ const items = _.swallowMap([1, 2, 3], item => processItem(item), true)  // filte
 #### Japanese Text Plugin
 
 ```typescript
-import _ from 'eskamasu'
-import 'eskamasu/plugins/ja'
+import { kanaToFull, kanaToHira, toHalfWidth, haifun } from 'eskamasu/plugins/ja'
 
-_.kanaToFull('ｶﾞｷﾞ')              // 'ガギ'
-_.kanaToHira('アイウ')             // 'あいう'
-_.toHalfWidth('ＡＢＣー１２３', '-') // 'ABC-123'
-_.haifun('test‐data', '-')       // 'test-data'
+kanaToFull('ｶﾞｷﾞ')              // 'ガギ'
+kanaToHira('アイウ')             // 'あいう'
+toHalfWidth('ＡＢＣー１２３', '-') // 'ABC-123'
+haifun('test‐data', '-')       // 'test-data'
 ```
 
 #### Geo Plugin
 
 ```typescript
-import _ from 'eskamasu'
-import 'eskamasu/plugins/geo'
+import { toPointGeoJson, unionPolygon, mZoomInterpolate, mProps } from 'eskamasu/plugins/geo'
 
 // Convert various formats to GeoJSON
-_.toPointGeoJson([139.7671, 35.6812])
+toPointGeoJson([139.7671, 35.6812])
 // => { type: 'Point', coordinates: [139.7671, 35.6812] }
 
-_.toPointGeoJson({ lat: 35.6895, lng: 139.6917 })
+toPointGeoJson({ lat: 35.6895, lng: 139.6917 })
 // => { type: 'Point', coordinates: [139.6917, 35.6895] }
 
 // Union multiple polygons
-const unified = _.unionPolygon([polygon1, polygon2])
+const unified = unionPolygon([polygon1, polygon2])
 
 // MapBox utilities
-_.mZoomInterpolate({ 10: 1, 15: 5, 20: 10 })
+mZoomInterpolate({ 10: 1, 15: 5, 20: 10 })
 // => ["interpolate", ["linear"], ["zoom"], 10, 1, 15, 5, 20, 10]
 
-_.mProps({
+mProps({
   fillColor: "#ff0000",
   sourceLayer: "buildings",
   visibility: true
@@ -277,23 +285,9 @@ import 'eskamasu/plugins/prototype'
 [1, 2, 3].notFilter(n => n % 2)   // [2] (even numbers)
 ```
 
-### Combining Plugins
-
-```typescript
-import _ from 'eskamasu'
-import 'eskamasu/plugins/ja'
-import 'eskamasu/plugins/geo'
-
-// Now you have both Japanese and Geo utilities on `_`
-_.kanaToHira('アイウ')
-_.toPointGeoJson([139.7, 35.6])
-```
-
-Each plugin registers itself exactly once, even if imported from multiple files (a duplicate-registration guard is built in).
-
 ## Differences from lodash / ansuko
 
-`_` is `{ ...es-toolkit/compat, ...eskamasu's own functions }`. The following lodash functions are not provided by `es-toolkit/compat`, so they are **not available** on `_`:
+eskamasu re-exports every `es-toolkit/compat` function and overrides only `isEmpty` / `toNumber` / `castArray` with eskamasu's versions. The following lodash functions are not provided by `es-toolkit/compat`, so they are **not available**:
 
 - `chain`
 - `mixin`
@@ -302,11 +296,13 @@ Each plugin registers itself exactly once, even if imported from multiple files 
 - `noConflict`
 - `runInContext`
 
-Wrapper-style calls such as `_(value).map(...)` are not supported (they were not supported in ansuko either). Everything else — including eskamasu's own functions and plugins — behaves the same as in ansuko.
+Wrapper-style calls such as `_(value).map(...)` are not supported (they were not supported in ansuko either).
+
+Also, unlike ansuko, there is no default `_` export, and plugins are provided as named exports instead of extending `_`. The functions themselves — including eskamasu's own functions and plugins — behave the same as in ansuko.
 
 ## Documentation
 
-eskamasu's own functions and plugins share the same API as ansuko, so ansuko's documentation applies as-is (just replace `ansuko` with `eskamasu` in import paths):
+eskamasu's own functions and plugins share the same API as ansuko, so ansuko's documentation applies as-is (read `_.isEmpty(x)` as `isEmpty(x)` after `import { isEmpty } from 'eskamasu'`):
 
 - **[API Reference](https://github.com/sera4am/ansuko/blob/main/docs/API.md)** - Complete API documentation with examples
 - **[Usage Guide](https://github.com/sera4am/ansuko/blob/main/docs/Guide.md)** - Real-world examples and patterns
@@ -351,14 +347,14 @@ try {
 }
 
 // Same logic with eskamasu (concise & safe)
-const data = await _.valueOr(
+const data = await valueOr(
   () => cache.get(id),
   () => api.fetch(id),
   defaultValue
 )
 ```
 
-eskamasu keeps the `es-toolkit/compat` API available on `_` (except for the functions listed in [Differences from lodash / ansuko](#differences-from-lodash--ansuko)) while fixing these issues and adding powerful utilities for modern JavaScript development.
+eskamasu keeps the `es-toolkit/compat` API importable as-is (except for the functions listed in [Differences from lodash / ansuko](#differences-from-lodash--ansuko)) while fixing these issues and adding powerful utilities for modern JavaScript development.
 
 ## Dependencies
 

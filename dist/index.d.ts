@@ -1,5 +1,4 @@
 import * as lodash from "es-toolkit/compat";
-type EsToolkitCompat = Omit<typeof lodash, "default">;
 /**
  * Checks if the value is a non-empty string. null/undefined/empty string -> false.
  * @param str - Value to check
@@ -262,46 +261,8 @@ export type ChangesOptions = {
 };
 type ChangesAfterCallback<T> = (value: T) => any | Promise<any>;
 type ChangesAfterFinallyCallback<T> = (value: T, res: any) => any | Promise<any>;
-type EskamasuOverriddenKeys = 'isEmpty' | 'toNumber' | 'castArray' | 'extend';
-/**
- * eskamasu 本体の型。es-toolkit/compat の全関数 (上書き対象を除く) をそのまま継承し、
- * eskamasu 独自関数を追加した形になる。
- *
- * プラグインを読み込むと、各プラグインの d.ts に書かれた declaration merging により
- * このインターフェースが自動的に拡張される。
- */
-export interface EskamasuType extends Omit<EsToolkitCompat, EskamasuOverriddenKeys> {
-    isValidStr: typeof isValidStr;
-    valueOr: typeof valueOr;
-    emptyOr: typeof emptyOr;
-    hasOr: typeof hasOr;
-    toBool: typeof toBool;
-    boolIf: typeof boolIf;
-    waited: typeof waited;
-    equalsOr: typeof equalsOr;
-    notEqualsOr: typeof notEqualsOr;
-    parseJSON: typeof parseJSON;
-    jsonStringify: typeof jsonStringify;
-    changes: typeof changes;
-    swallow: typeof swallow;
-    swallowMap: typeof swallowMap;
-    arrayDepth: typeof arrayDepth;
-    strWrap: typeof strWrap;
-    isValidEmail: typeof isValidEmail;
-    isEmpty: typeof isEmpty;
-    toNumber: typeof toNumber;
-    castArray: typeof castArray;
-    isEmptyOrg: typeof lodash.isEmpty;
-    toNumberOrg: typeof lodash.toNumber;
-    castArrayOrg: typeof lodash.castArray;
-    /**
-     * 登録済みプラグイン名のレジストリ。
-     * プラグインの side-effect import 時に重複登録を防ぐために使用される。
-     * 通常コードから直接触らないこと。
-     * @internal
-     */
-    __plugins: Set<string>;
-}
-declare const _: EskamasuType;
-export default _;
-export { isEmpty, toNumber, boolIf, isValidStr, valueOr, equalsOr, notEqualsOr, waited, parseJSON, jsonStringify, castArray, changes, strWrap, swallow, swallowMap, arrayDepth, isValidEmail, };
+export * from "es-toolkit/compat";
+declare const isEmptyOrg: typeof lodash.isEmpty;
+declare const toNumberOrg: typeof lodash.toNumber;
+declare const castArrayOrg: typeof lodash.castArray;
+export { isEmpty, toNumber, castArray, isEmptyOrg, toNumberOrg, castArrayOrg, toBool, boolIf, isValidStr, valueOr, emptyOr, hasOr, equalsOr, notEqualsOr, waited, parseJSON, jsonStringify, changes, strWrap, swallow, swallowMap, arrayDepth, isValidEmail, };

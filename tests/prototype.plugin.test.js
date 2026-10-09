@@ -1,4 +1,3 @@
-import '../dist/index.js'
 import '../dist/plugins/prototype.js'
 import { describe, it, expect } from 'vitest'
 

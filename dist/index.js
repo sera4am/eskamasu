@@ -580,36 +580,12 @@ const isValidEmail = (email) => {
     const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     return re.test(str);
 };
-// namespace import には default (toolkit 関数) が含まれるので除外して展開する
-const { default: _toolkit, ...compatFunctions } = lodash;
-// 変数名を _ にすることで、VS Code の auto import 候補が `_` として表示される
-const _ = {
-    ...compatFunctions,
-    isEmptyOrg: lodash.isEmpty,
-    toNumberOrg: lodash.toNumber,
-    castArrayOrg: lodash.castArray,
-    strWrap,
-    isEmpty,
-    toNumber,
-    toBool,
-    boolIf,
-    isValidStr,
-    valueOr,
-    equalsOr,
-    emptyOr,
-    notEqualsOr,
-    hasOr,
-    waited,
-    parseJSON,
-    jsonStringify,
-    castArray,
-    changes,
-    swallow,
-    swallowMap,
-    arrayDepth,
-    isValidEmail,
-    __plugins: new Set(),
-};
-export default _;
-// 個別エクスポートはそのまま
-export { isEmpty, toNumber, boolIf, isValidStr, valueOr, equalsOr, notEqualsOr, waited, parseJSON, jsonStringify, castArray, changes, strWrap, swallow, swallowMap, arrayDepth, isValidEmail, };
+// es-toolkit/compat の全関数をそのまま再エクスポートする。
+// 下の明示的な export と名前が被るもの (isEmpty / toNumber / castArray) は、
+// ESM の仕様により明示的な export が優先される。
+export * from "es-toolkit/compat";
+// 上書き前の es-toolkit/compat オリジナル
+const isEmptyOrg = lodash.isEmpty;
+const toNumberOrg = lodash.toNumber;
+const castArrayOrg = lodash.castArray;
+export { isEmpty, toNumber, castArray, isEmptyOrg, toNumberOrg, castArrayOrg, toBool, boolIf, isValidStr, valueOr, emptyOr, hasOr, equalsOr, notEqualsOr, waited, parseJSON, jsonStringify, changes, strWrap, swallow, swallowMap, arrayDepth, isValidEmail, };

@@ -1,5 +1,4 @@
-import _ from '../dist/index.js'
-import '../dist/plugins/geo.js'
+import * as _ from '../dist/plugins/geo.js'
 import { describe, it, expect } from 'vitest'
 
 const eskamasu = _

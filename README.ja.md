@@ -18,7 +18,14 @@ eskamasu は [ansuko](https://github.com/sera4am/ansuko) の兄弟ライブラ�
 | [ansuko](https://github.com/sera4am/ansuko) | `lodash` | lodash との完全な互換性が欲しい |
 | **eskamasu** | `es-toolkit/compat` | es-toolkit をベースにしたい |
 
-ansuko と同様、すべての関数は1つの `_` オブジェクトにまとめられています。これは意図的な設計で、`map` / `get` / `toNumber` のような短く汎用的な名前でモジュールスコープを汚さないためです。そのため、tree-shaking はこのライブラリの目標ではありません。
+ansuko と違い、eskamasu は `_` オブジェクトを使いません。`es-toolkit/compat` の全関数と eskamasu 独自関数を **named export** で提供するので、`import { isEmpty, get, valueOr } from 'eskamasu'` のように必要な関数だけを import でき、tree-shaking も効きます。
+
+```typescript
+import { isEmpty, get, valueOr } from 'eskamasu'
+
+isEmpty(0)              // false（eskamasu 版）
+get({ a: 1 }, 'a')      // 1（es-toolkit/compat そのまま）
+```
 
 ## インストール
 
@@ -31,7 +38,7 @@ npm install eskamasu
 ```json
 {
   "dependencies": {
-    "eskamasu": "^0.1.0"
+    "eskamasu": "^0.2.0"
   }
 }
 ```
@@ -46,17 +53,17 @@ eskamasuは直感的な動作でJavaScriptのよくある不満を解消しま�
 
 ```typescript
 // ❌ lodash / es-toolkit/compat（直感的でない）
-_.isEmpty(0)           // true  - 0は本当に「空」？
-_.isEmpty(true)        // true  - trueは「空」？
-_.castArray(null)      // [null] - なぜnullを残す？
+isEmpty(0)           // true  - 0は本当に「空」？
+isEmpty(true)        // true  - trueは「空」？
+castArray(null)      // [null] - なぜnullを残す？
 
 // ✅ eskamasu（直感的）
-_.isEmpty(0)           // false - 数値は空ではない
-_.isEmpty(true)        // false - 真偽値は空ではない
-_.castArray(null)      // []    - クリーンな空配列
+isEmpty(0)           // false - 数値は空ではない
+isEmpty(true)        // false - 真偽値は空ではない
+castArray(null)      // []    - クリーンな空配列
 ```
 
-元の実装は `_.isEmptyOrg` / `_.toNumberOrg` / `_.castArrayOrg`（`es-toolkit/compat` の実装）として引き続き利用できます。
+元の実装は `isEmptyOrg` / `toNumberOrg` / `castArrayOrg`（`es-toolkit/compat` の実装）として引き続き import できます。
 
 ### 安全なJSON処理
 
@@ -66,10 +73,10 @@ JSON.stringify('hello')  // '"hello"'  - 余計な引用符！
 JSON.parse(badJson)      // throws     - try-catchが必要
 
 // ✅ eskamasu（スムーズ）
-_.jsonStringify('hello')     // null     - オブジェクトではない
-_.jsonStringify({ a: 1 })    // '{"a":1}' - クリーン
-_.parseJSON(badJson)         // null     - 例外なし
-_.parseJSON('{ a: 1, }')     // {a:1}    - JSON5対応！
+jsonStringify('hello')     // null     - オブジェクトではない
+jsonStringify({ a: 1 })    // '{"a":1}' - クリーン
+parseJSON(badJson)         // null     - 例外なし
+parseJSON('{ a: 1, }')     // {a:1}    - JSON5対応！
 ```
 
 ### Promise対応のフォールバック
@@ -80,7 +87,7 @@ const data = await fetchData()
 const result = data ? data : await fetchBackup()
 
 // ✅ eskamasu（簡潔）
-const result = await _.valueOr(
+const result = await valueOr(
   () => fetchData(),
   () => fetchBackup()
 )
@@ -93,7 +100,7 @@ const result = await _.valueOr(
 const value = a === b ? a : (a == null && b == null ? a : defaultValue)
 
 // ✅ eskamasu（読みやすい）
-const value = _.equalsOr(a, b, defaultValue)  // null == undefined
+const value = equalsOr(a, b, defaultValue)  // null == undefined
 ```
 
 ## 主な機能
@@ -175,54 +182,57 @@ eskamasuはコア + オプトインのプラグインアーキテクチャを採
 - **Prototypeプラグイン**: Array prototypeの拡張が必要な場合のみ
 
 ```typescript
-// コア
-import _ from 'eskamasu'
+// コア（es-toolkit/compat 全関数 + eskamasu 独自関数）
+import { isEmpty, valueOr } from 'eskamasu'
 
 // 必要に応じて日本語サポートを追加
-import 'eskamasu/plugins/ja'  // side-effect import
+import { kanaToFull } from 'eskamasu/plugins/ja'
 
 // マッピングアプリ用にGIS機能を追加
-import 'eskamasu/plugins/geo'
+import { toPointGeoJson } from 'eskamasu/plugins/geo'
 ```
 
-プラグインは side-effect import で読み込みます。`import 'eskamasu/plugins/<name>'` を一度書くだけで、`_` の実体と TypeScript の型（`declare module` merging 経由）が同時に拡張されるため、`_` に対して直接 IDE の補完が効きます。import しないプラグインはバンドルに含まれません。
+`ja` / `geo` プラグインはサブパスから named import します。サブパスを分けているので、`@turf/turf` のような重い依存はプラグインを import したときにしか読み込まれません。`prototype` プラグインだけは `Array.prototype` を拡張する性質上、side-effect import（`import 'eskamasu/plugins/prototype'`）で使います。
 
 ## クイックスタート
 
 ### 基本的な使い方
 
 ```typescript
-import _ from 'eskamasu'
+import {
+  isEmpty, castArray, toNumber, valueOr, parseJSON,
+  isValidEmail, changes, swallow, swallowMap,
+} from 'eskamasu'
 
 // 拡張されたes-toolkit/compat関数
-_.isEmpty(0)           // false（lodash / es-toolkit/compat のようにtrueではない！）
-_.isEmpty([])          // true
-_.castArray(null)      // []（[null]ではない！）
-_.toNumber('1,234.5')  // 1234.5
+isEmpty(0)           // false（lodash / es-toolkit/compat のようにtrueではない！）
+isEmpty([])          // true
+castArray(null)      // []（[null]ではない！）
+toNumber('1,234.5')  // 1234.5
 
 // Promise対応の値処理
-const value = await _.valueOr(
+const value = await valueOr(
   () => cache.get(id),
   () => api.fetch(id)
 )
 
 // 安全なJSONパース
-const data = _.parseJSON('{ "a": 1, /* comment */ }')  // JSON5対応！
+const data = parseJSON('{ "a": 1, /* comment */ }')  // JSON5対応！
 
 // メールアドレス検証
-_.isValidEmail('user@example.com')   // true
-_.isValidEmail(' user@example.com ') // false
+isValidEmail('user@example.com')   // true
+isValidEmail(' user@example.com ') // false
 
 // データベース更新用のオブジェクト変更追跡
-const diff = _.changes(
+const diff = changes(
   original, 
   updated, 
   ['name', 'email', 'profile.bio']
 )
 
 // try-catch不要のエラーハンドリング
-const result = _.swallow(() => riskyOperation())  // エラー時はundefined
-const items = _.swallowMap([1, 2, 3], item => processItem(item), true)  // エラーを除外
+const result = swallow(() => riskyOperation())  // エラー時はundefined
+const items = swallowMap([1, 2, 3], item => processItem(item), true)  // エラーを除外
 ```
 
 ### プラグインの使用
@@ -230,36 +240,34 @@ const items = _.swallowMap([1, 2, 3], item => processItem(item), true)  // エ�
 #### 日本語テキストプラグイン
 
 ```typescript
-import _ from 'eskamasu'
-import 'eskamasu/plugins/ja'
+import { kanaToFull, kanaToHira, toHalfWidth, haifun } from 'eskamasu/plugins/ja'
 
-_.kanaToFull('ｶﾞｷﾞ')              // 'ガギ'
-_.kanaToHira('アイウ')             // 'あいう'
-_.toHalfWidth('ＡＢＣー１２３', '-') // 'ABC-123'
-_.haifun('test‐data', '-')       // 'test-data'
+kanaToFull('ｶﾞｷﾞ')              // 'ガギ'
+kanaToHira('アイウ')             // 'あいう'
+toHalfWidth('ＡＢＣー１２３', '-') // 'ABC-123'
+haifun('test‐data', '-')       // 'test-data'
 ```
 
 #### Geoプラグイン
 
 ```typescript
-import _ from 'eskamasu'
-import 'eskamasu/plugins/geo'
+import { toPointGeoJson, unionPolygon, mZoomInterpolate, mProps } from 'eskamasu/plugins/geo'
 
 // 様々な形式をGeoJSONに変換
-_.toPointGeoJson([139.7671, 35.6812])
+toPointGeoJson([139.7671, 35.6812])
 // => { type: 'Point', coordinates: [139.7671, 35.6812] }
 
-_.toPointGeoJson({ lat: 35.6895, lng: 139.6917 })
+toPointGeoJson({ lat: 35.6895, lng: 139.6917 })
 // => { type: 'Point', coordinates: [139.6917, 35.6895] }
 
 // 複数のポリゴンを結合
-const unified = _.unionPolygon([polygon1, polygon2])
+const unified = unionPolygon([polygon1, polygon2])
 
 // MapBoxユーティリティ
-_.mZoomInterpolate({ 10: 1, 15: 5, 20: 10 })
+mZoomInterpolate({ 10: 1, 15: 5, 20: 10 })
 // => ["interpolate", ["linear"], ["zoom"], 10, 1, 15, 5, 20, 10]
 
-_.mProps({
+mProps({
   fillColor: "#ff0000",
   sourceLayer: "buildings",
   visibility: true
@@ -277,23 +285,9 @@ import 'eskamasu/plugins/prototype'
 [1, 2, 3].notFilter(n => n % 2)   // [2]（偶数）
 ```
 
-### 複数プラグインの併用
-
-```typescript
-import _ from 'eskamasu'
-import 'eskamasu/plugins/ja'
-import 'eskamasu/plugins/geo'
-
-// 日本語とGeoユーティリティの両方が `_` で使える
-_.kanaToHira('アイウ')
-_.toPointGeoJson([139.7, 35.6])
-```
-
-各プラグインは複数ファイルから import されても登録は1回のみです（重複登録ガードを内蔵）。
-
 ## lodash / ansuko との違い
 
-`_` は `{ ...es-toolkit/compat, ...eskamasu 独自関数 }` です。以下の lodash 関数は `es-toolkit/compat` に存在しないため、`_` では**利用できません**：
+eskamasu は `es-toolkit/compat` の全関数を再エクスポートし、`isEmpty` / `toNumber` / `castArray` だけを eskamasu 版で上書きしています。以下の lodash 関数は `es-toolkit/compat` に存在しないため、**利用できません**：
 
 - `chain`
 - `mixin`
@@ -302,11 +296,13 @@ _.toPointGeoJson([139.7, 35.6])
 - `noConflict`
 - `runInContext`
 
-`_(value).map(...)` のようなラッパー形式の呼び出しもサポートしていません（ansuko でもサポートしていませんでした）。それ以外（eskamasu 独自関数とプラグインを含む）は ansuko と同じ動作です。
+`_(value).map(...)` のようなラッパー形式の呼び出しもサポートしていません（ansuko でもサポートしていませんでした）。
+
+また ansuko と違い default export の `_` はなく、プラグインも `_` を拡張するのではなく named export で提供します。関数そのものの動作（eskamasu 独自関数とプラグインを含む）は ansuko と同じです。
 
 ## ドキュメント
 
-eskamasu の独自関数とプラグインは ansuko と同じ API なので、ansuko のドキュメントがそのまま使えます（import パスの `ansuko` を `eskamasu` に読み替えてください）：
+eskamasu の独自関数とプラグインは ansuko と同じ API なので、ansuko のドキュメントがそのまま使えます（`_.isEmpty(x)` は `import { isEmpty } from 'eskamasu'` して `isEmpty(x)` と読み替えてください）：
 
 - **[APIリファレンス](https://github.com/sera4am/ansuko/blob/main/docs/API.ja.md)** - 例付きの完全なAPIドキュメント
 - **[使用ガイド](https://github.com/sera4am/ansuko/blob/main/docs/Guide.ja.md)** - 実際の使用例とパターン
@@ -351,14 +347,14 @@ try {
 }
 
 // eskamasuでの同じロジック（簡潔で安全）
-const data = await _.valueOr(
+const data = await valueOr(
   () => cache.get(id),
   () => api.fetch(id),
   defaultValue
 )
 ```
 
-eskamasuは、`es-toolkit/compat` の API を `_` 上でそのまま使えるようにしつつ（[lodash / ansuko との違い](#lodash--ansuko-との違い) に挙げた関数を除く）、これらの問題を修正し、モダンなJavaScript開発のための強力なユーティリティを追加しています。
+eskamasuは、`es-toolkit/compat` の API をそのまま import できるようにしつつ（[lodash / ansuko との違い](#lodash--ansuko-との違い) に挙げた関数を除く）、これらの問題を修正し、モダンなJavaScript開発のための強力なユーティリティを追加しています。
 
 ## 依存関係
 

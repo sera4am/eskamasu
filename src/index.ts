@@ -1,7 +1,4 @@
 import * as lodash from "es-toolkit/compat"
-
-// es-toolkit/compat の namespace から default (toolkit 関数) を除いたもの = lodash 互換 API 全体
-type EsToolkitCompat = Omit<typeof lodash, "default">
 import JSON5 from "json5"
 import { toHalfWidth } from "./util.js"
 
@@ -670,101 +667,34 @@ export type ChangesOptions = {
 type ChangesAfterCallback<T> = (value: T) => any | Promise<any>
 type ChangesAfterFinallyCallback<T> = (value: T, res: any) => any | Promise<any>
 
-// eskamasu で上書き / 削除する es-toolkit/compat のキー
-type EskamasuOverriddenKeys = 'isEmpty' | 'toNumber' | 'castArray' | 'extend'
+// es-toolkit/compat の全関数をそのまま再エクスポートする。
+// 下の明示的な export と名前が被るもの (isEmpty / toNumber / castArray) は、
+// ESM の仕様により明示的な export が優先される。
+export * from "es-toolkit/compat"
 
-/**
- * eskamasu 本体の型。es-toolkit/compat の全関数 (上書き対象を除く) をそのまま継承し、
- * eskamasu 独自関数を追加した形になる。
- *
- * プラグインを読み込むと、各プラグインの d.ts に書かれた declaration merging により
- * このインターフェースが自動的に拡張される。
- */
-export interface EskamasuType extends Omit<EsToolkitCompat, EskamasuOverriddenKeys> {
-    // eskamasu 独自関数
-    isValidStr: typeof isValidStr
-    valueOr: typeof valueOr
-    emptyOr: typeof emptyOr
-    hasOr: typeof hasOr
-    toBool: typeof toBool
-    boolIf: typeof boolIf
-    waited: typeof waited
-    equalsOr: typeof equalsOr
-    notEqualsOr: typeof notEqualsOr
-    parseJSON: typeof parseJSON
-    jsonStringify: typeof jsonStringify
-    changes: typeof changes
-    swallow: typeof swallow
-    swallowMap: typeof swallowMap
-    arrayDepth: typeof arrayDepth
-    strWrap: typeof strWrap
-    isValidEmail: typeof isValidEmail
+// 上書き前の es-toolkit/compat オリジナル
+const isEmptyOrg = lodash.isEmpty
+const toNumberOrg = lodash.toNumber
+const castArrayOrg = lodash.castArray
 
-    // eskamasu で挙動を上書きしている関数
-    isEmpty: typeof isEmpty
-    toNumber: typeof toNumber
-    castArray: typeof castArray
-
-    // 上書き前の es-toolkit/compat オリジナル
-    isEmptyOrg: typeof lodash.isEmpty
-    toNumberOrg: typeof lodash.toNumber
-    castArrayOrg: typeof lodash.castArray
-
-    /**
-     * 登録済みプラグイン名のレジストリ。
-     * プラグインの side-effect import 時に重複登録を防ぐために使用される。
-     * 通常コードから直接触らないこと。
-     * @internal
-     */
-    __plugins: Set<string>
-}
-
-// namespace import には default (toolkit 関数) が含まれるので除外して展開する
-const { default: _toolkit, ...compatFunctions } = lodash as any
-
-// 変数名を _ にすることで、VS Code の auto import 候補が `_` として表示される
-const _ = {
-    ...compatFunctions,
-    isEmptyOrg: lodash.isEmpty,
-    toNumberOrg: lodash.toNumber,
-    castArrayOrg: lodash.castArray,
-    strWrap,
+export {
     isEmpty,
     toNumber,
+    castArray,
+    isEmptyOrg,
+    toNumberOrg,
+    castArrayOrg,
     toBool,
     boolIf,
     isValidStr,
     valueOr,
-    equalsOr,
     emptyOr,
-    notEqualsOr,
     hasOr,
-    waited,
-    parseJSON,
-    jsonStringify,
-    castArray,
-    changes,
-    swallow,
-    swallowMap,
-    arrayDepth,
-    isValidEmail,
-    __plugins: new Set<string>(),
-} as EskamasuType
-export default _
-
-// 個別エクスポートはそのまま
-export {
-    isEmpty,
-    toNumber,
-    boolIf,
-    isValidStr,
-    valueOr,
     equalsOr,
     notEqualsOr,
     waited,
     parseJSON,
     jsonStringify,
-    castArray,
     changes,
     strWrap,
     swallow,

@@ -1,4 +1,5 @@
-import _ from '../dist/index.js'
+import * as _ from '../dist/index.js'
+import * as compat from 'es-toolkit/compat'
 import { describe, it, expect } from 'vitest'
 
 // index.ts core API tests
@@ -180,16 +181,6 @@ describe('Core Functions', () => {
     expect(finallySpy.length).toBe(1)
   })
 
-  it('plugin registry (__plugins) is exposed and prevents duplicates', async () => {
-    expect(_.__plugins).toBeInstanceOf(Set)
-    // ja プラグインを2回 import しても1回しか登録されないことを確認
-    await import('../dist/plugins/ja.js')
-    const sizeBefore = _.__plugins.size
-    expect(_.__plugins.has('ja')).toBe(true)
-    await import('../dist/plugins/ja.js')
-    expect(_.__plugins.size).toBe(sizeBefore)
-  })
-
   it('lodash passthrough', () => {
     expect(_.size([1,2,3])).toBe(3)
     expect(_.isNil(null)).toBe(true)
@@ -198,6 +189,14 @@ describe('Core Functions', () => {
     expect(_.last([1,2,3])).toBe(3)
     expect(_.uniq([1,2,2,3])).toEqual([1,2,3])
     expect(_.has({a:1}, 'a')).toBe(true)
+  })
+
+  it('eskamasu overrides take precedence over es-toolkit/compat re-exports', () => {
+    expect(_.isEmpty).not.toBe(compat.isEmpty)
+    expect(_.toNumber).not.toBe(compat.toNumber)
+    expect(_.castArray).not.toBe(compat.castArray)
+    expect(_.get).toBe(compat.get)
+    expect(_.default).toBeUndefined()
   })
 
   it('original lodash versions', () => {
