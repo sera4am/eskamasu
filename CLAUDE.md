@@ -42,7 +42,7 @@ deploy.sh の内部フロー:
    - `[Unreleased]` 見出しの直下に新バージョン見出し `## [X.Y.Z] - YYYY-MM-DD` を差し込む
    - 末尾の参照リンク (`[Unreleased]: .../compare/...HEAD` など) も自動追従
    - `git add CHANGELOG.md` して同じ commit に同梱
-4. `git push --tags`
+4. `git push --follow-tags`（version commit とタグをまとめて push）
 5. `npm publish`
 
 ### CHANGELOG が空のまま patch リリースしてもよい？
