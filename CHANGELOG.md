@@ -9,6 +9,8 @@ eskamasu is the es-toolkit edition of [ansuko](https://github.com/sera4am/ansuko
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-09
+
 ### Changed (BREAKING)
 - Switched from a default `_` object to named exports. Use `import { isEmpty, get, valueOr } from "eskamasu"` instead of `import _ from "eskamasu"`. All `es-toolkit/compat` functions are re-exported; `isEmpty` / `toNumber` / `castArray` are overridden by the eskamasu versions. This makes eskamasu tree-shakable.
 - Plugins `ja` / `geo` no longer extend `_` via side-effect import. Import functions by name from the subpath instead, e.g. `import { kanaToFull } from "eskamasu/plugins/ja"`. The `prototype` plugin is still a side-effect import.
@@ -32,5 +34,6 @@ eskamasu is the es-toolkit edition of [ansuko](https://github.com/sera4am/ansuko
 ### Removed
 - Not available compared to ansuko (missing in es-toolkit/compat): `chain`, `mixin`, `sortedUniq`, `sortedUniqBy`, `tap`, `thru`, `noConflict`, `runInContext`.
 
-[Unreleased]: https://github.com/sera4am/eskamasu/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/sera4am/eskamasu/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/sera4am/eskamasu/releases/tag/v0.2.0
 [0.1.0]: https://github.com/sera4am/eskamasu/releases/tag/v0.1.0

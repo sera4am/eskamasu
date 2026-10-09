@@ -1,6 +1,6 @@
 {
   "name": "eskamasu",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A modern JavaScript/TypeScript utility library that extends es-toolkit (lodash-compatible) with practical, intuitive behaviors. Adds Promise support, Japanese text processing, and GeoJSON utilities. Sibling of ansuko.",
   "keywords": [
     "es-toolkit",
